@@ -4340,24 +4340,28 @@ void Game::updateGui(const RunStats &stats, f32 dtime, const CameraOrientation &
 
 	if (flags.show_debug) {
 		std::ostringstream os(std::ios_base::binary);
+
 		os << std::setprecision(1) << std::fixed
-		   << "(" << (player_position.X / BS)
-		   << ", " << (player_position.Y / BS)
-		   << ", " << (player_position.Z / BS)
-		   << ") (yaw=" << (wrapDegrees_0_360(cam.camera_yaw))
-		   << " " << yawToDirectionString(cam.camera_yaw)
-		   << ") (seed = " << ((u64)client->getMapSeed())
-		   << ")";
+			<< "pos: (" << (player_position.X / BS)
+			<< ", " << (player_position.Y / BS)
+			<< ", " << (player_position.Z / BS)
+			<< ") | yaw: " << (wrapDegrees_0_360(cam.camera_yaw)) << "° "
+			<< yawToDirectionString(cam.camera_yaw)
+			<< " | pitch: " << (-wrapDegrees_180(cam.camera_pitch)) << "°"
+			<< " | seed: " << ((u64)client->getMapSeed());
 
 		if (runData.pointed_old.type == POINTEDTHING_NODE) {
 			ClientMap &map = client->getEnv().getClientMap();
 			const INodeDefManager *nodedef = client->getNodeDefManager();
 			MapNode n = map.getNodeNoEx(runData.pointed_old.node_undersurface);
-			if (n.getContent() != CONTENT_IGNORE && nodedef->get(n).name != "unknown") {
-				const ContentFeatures &features = nodedef->get(n);
-				os << " (pointing_at = " << nodedef->get(n).name
-				   << " - " << features.tiledef[0].name.c_str()
-				   << ")";
+
+			if (n.getContent() != CONTENT_IGNORE) {
+				if (nodedef->get(n).name == "unknown") {
+					os << ", pointed: <unknown node>";
+				} else {
+					os << ", pointed: " << nodedef->get(n).name;
+				}
+				os << ", param2: " << (u64) n.getParam2();
 			}
 		}
 
