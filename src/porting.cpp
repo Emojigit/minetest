@@ -779,6 +779,27 @@ v2u32 getWindowSize()
 	return device->getVideoDriver()->getScreenSize();
 }
 
+
+std::vector<core::vector3d<u32> > getSupportedVideoModes()
+{
+	IrrlichtDevice *nulldevice = createDevice(video::EDT_NULL);
+	sanity_check(nulldevice != NULL);
+
+	std::vector<core::vector3d<u32> > mlist;
+	video::IVideoModeList *modelist = nulldevice->getVideoModeList();
+
+	u32 num_modes = modelist->getVideoModeCount();
+	for (u32 i = 0; i != num_modes; i++) {
+		core::dimension2d<u32> mode_res = modelist->getVideoModeResolution(i);
+		s32 mode_depth = modelist->getVideoModeDepth(i);
+		mlist.push_back(core::vector3d<u32>(mode_res.Width, mode_res.Height, mode_depth));
+	}
+
+	nulldevice->drop();
+
+	return mlist;
+}
+
 std::vector<irr::video::E_DRIVER_TYPE> getSupportedVideoDrivers()
 {
 	std::vector<irr::video::E_DRIVER_TYPE> drivers;
