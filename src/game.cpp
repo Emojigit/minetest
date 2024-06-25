@@ -4312,18 +4312,18 @@ void Game::updateGui(const RunStats &stats, f32 dtime, const CameraOrientation &
 
 		std::ostringstream os(std::ios_base::binary);
 		os << std::fixed
-		   << PROJECT_NAME_C " " << g_version_hash
-		   << " FPS = " << fps
-		   << " (R: range_all=" << draw_control->range_all << ")"
-		   << std::setprecision(0)
-		   << " drawtime = " << drawtime_avg
-		   << std::setprecision(1)
-		   << ", dtime_jitter = "
-		   << (stats.dtime_jitter.max_fraction * 100.0) << " %"
-		   << std::setprecision(1)
-		   << ", v_range = " << draw_control->wanted_range
-		   << std::setprecision(3)
-		   << ", RTT = " << client->getRTT();
+			<< PROJECT_NAME_C " " << g_version_hash
+			<< " | FPS: " << fps
+			<< std::setprecision(0)
+			<< " | drawtime: " << drawtime_avg << "ms"
+			<< std::setprecision(1)
+			<< " | dtime jitter: "
+			<< (stats.dtime_jitter.max_fraction * 100.0) << "%"
+			<< std::setprecision(1)
+			<< " | view range: "
+			<< (draw_control->range_all ? "All" : itos(draw_control->wanted_range))
+			<< std::setprecision(2)
+			<< " | RTT: " << (client->getRTT() * 1000.0f) << "ms";
 		setStaticText(guitext, utf8_to_wide(os.str()).c_str());
 		guitext->setVisible(true);
 	} else {
