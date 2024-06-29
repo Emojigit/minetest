@@ -3904,6 +3904,7 @@ Operators
 ---------
 
 Operators can be used if all of the involved vectors have metatables:
+
 * `v1 == v2`:
     * Returns whether `v1` and `v2` are identical.
 * `-v`:
@@ -4348,6 +4349,8 @@ A common medium value is 0.5, such that each octave has half the amplitude of
 the previous octave.
 This may need to be tuned when altering `lacunarity`; when doing so consider
 that a common medium value is 1 / lacunarity.
+
+Instead of `persistence`, the key `persist` may be used to the same effect.
 
 ### `lacunarity`
 
