@@ -99,6 +99,8 @@ static const VertexType vtTangents = {
 };
 
 #pragma GCC diagnostic pop
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
 
 static const VertexType &getVertexTypeDescription(E_VERTEX_TYPE type)
 {
@@ -113,6 +115,8 @@ static const VertexType &getVertexTypeDescription(E_VERTEX_TYPE type)
 		IRR_CODE_UNREACHABLE();
 	}
 }
+
+#pragma GCC diagnostic pop
 
 static const VertexType vt2DImage = {
 		sizeof(S3DVertex),
