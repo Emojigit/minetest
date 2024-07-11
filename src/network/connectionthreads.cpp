@@ -200,7 +200,7 @@ void ConnectionSendThread::runTimeouts(float dtime, u32 peer_packet_quota)
 			MYMAX(5.0f, m_timeout / 4) : m_timeout;
 		std::string reason;
 		if (peer->isTimedOut(peer_timeout, reason)) {
-			infostream << m_connection->getDesc()
+			actionstream << m_connection->getDesc()
 				<< "RunTimeouts(): Peer " << peer->id
 				<< " has timed out (" << reason << ")"
 				<< std::endl;
