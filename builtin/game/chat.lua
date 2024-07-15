@@ -1331,7 +1331,6 @@ core.register_chatcommand("clearobjects", {
 				core.clear_objects(options)
 				core.log("action", "Object clearing done.")
 				core.chat_send_all("*** "..S("Cleared all objects."))
-				return true
 			end
 			return true, S("Operation canceled.")
 		end)
