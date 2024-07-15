@@ -749,6 +749,19 @@ static void httpfetch_request_clear(u64 caller)
 	}
 }
 
+static void httpfetch_sync(const HTTPFetchRequest &fetch_request,
+		HTTPFetchResult &fetch_result)
+{
+	// Create ongoing fetch data and make a cURL handle
+	// Set cURL options based on HTTPFetchRequest
+	CurlHandlePool pool;
+	HTTPFetchOngoing ongoing(fetch_request, &pool);
+	// Do the fetch (curl_easy_perform)
+	CURLcode res = ongoing.start(nullptr);
+	// Update fetch result
+	fetch_result = *ongoing.complete(res);
+}
+
 bool httpfetch_sync_interruptible(const HTTPFetchRequest &fetch_request,
 		HTTPFetchResult &fetch_result, long interval)
 {
@@ -766,8 +779,7 @@ bool httpfetch_sync_interruptible(const HTTPFetchRequest &fetch_request,
 		} while (!httpfetch_async_get(req.caller, fetch_result));
 		httpfetch_caller_free(req.caller);
 	} else {
-		throw ModError(std::string("You have tried to execute a synchronous HTTP request on the main thread! "
-				"This offense shall be punished. (").append(fetch_request.url).append(")"));
+		httpfetch_sync(fetch_request, fetch_result);
 	}
 	return true;
 }

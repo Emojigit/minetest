@@ -182,26 +182,14 @@ function contentdb.get_package_by_id(id)
 end
 
 
--- Create a coroutine from `fn` and provide results to `callback` when complete (dead).
--- Returns a resumer function.
-local function make_callback_coroutine(fn, callback)
-	local co = coroutine.create(fn)
-
-	local function resumer(...)
-		local ok, result = coroutine.resume(co, ...)
-
-		if not ok then
-			error(result)
-		elseif coroutine.status(co) == "dead" then
-			callback(result)
-		end
+local function get_raw_dependencies(package)
+	if package.type ~= "mod" then
+		return {}
+	end
+	if package.raw_deps then
+		return package.raw_deps
 	end
 
-	return resumer
-end
-
-
-local function get_raw_dependencies_async(package)
 	local url_fmt = "/api/packages/%s/dependencies/?only_hard=1&protocol_version=%s&engine_version=%s"
 	local version = core.get_version()
 	local base_url = core.settings:get("contentdb_url")
@@ -210,25 +198,11 @@ local function get_raw_dependencies_async(package)
 	local http = core.get_http_api()
 	local response = http.fetch_sync({ url = url })
 	if not response.succeeded then
-		return nil
-	end
-	return core.parse_json(response.data) or {}
-end
-
-
-local function get_raw_dependencies_co(package, resumer)
-	if package.type ~= "mod" then
-		return {}
-	end
-	if package.raw_deps then
-		return package.raw_deps
+		core.log("error", "Unable to fetch dependencies for " .. package.url_part)
+		return
 	end
 
-	core.handle_async(get_raw_dependencies_async, package, resumer)
-	local data = coroutine.yield()
-	if not data then
-		return nil
-	end
+	local data = core.parse_json(response.data) or {}
 
 	for id, raw_deps in pairs(data) do
 		local package2 = contentdb.package_by_id[id:lower()]
@@ -249,8 +223,8 @@ local function get_raw_dependencies_co(package, resumer)
 end
 
 
-local function has_hard_deps_co(package, resumer)
-	local raw_deps = get_raw_dependencies_co(package, resumer)
+function contentdb.has_hard_deps(package)
+	local raw_deps = get_raw_dependencies(package)
 	if not raw_deps then
 		return nil
 	end
@@ -265,14 +239,8 @@ local function has_hard_deps_co(package, resumer)
 end
 
 
-function contentdb.has_hard_deps(package, callback)
-	local resumer = make_callback_coroutine(has_hard_deps_co, callback)
-	resumer(package, resumer)
-end
-
-
 -- Recursively resolve dependencies, given the installed mods
-local function resolve_dependencies_2_co(raw_deps, installed_mods, out, resumer)
+local function resolve_dependencies_2(raw_deps, installed_mods, out)
 	local function resolve_dep(dep)
 		-- Check whether it's already installed
 		if installed_mods[dep.name] then
@@ -322,9 +290,9 @@ local function resolve_dependencies_2_co(raw_deps, installed_mods, out, resumer)
 			local result  = resolve_dep(dep)
 			out[dep.name] = result
 			if result and result.package and not result.installed then
-				local raw_deps2 = get_raw_dependencies_co(result.package, resumer)
+				local raw_deps2 = get_raw_dependencies(result.package)
 				if raw_deps2 then
-					resolve_dependencies_2_co(raw_deps2, installed_mods, out, resumer)
+					resolve_dependencies_2(raw_deps2, installed_mods, out)
 				end
 			end
 		end
@@ -334,10 +302,11 @@ local function resolve_dependencies_2_co(raw_deps, installed_mods, out, resumer)
 end
 
 
-local function resolve_dependencies_co(package, game, resumer)
+-- Resolve dependencies for a package, calls the recursive version.
+function contentdb.resolve_dependencies(package, game)
 	assert(game)
 
-	local raw_deps = get_raw_dependencies_co(package, resumer)
+	local raw_deps = get_raw_dependencies(package)
 	local installed_mods = {}
 
 	local mods = {}
@@ -351,7 +320,7 @@ local function resolve_dependencies_co(package, game, resumer)
 	end
 
 	local out = {}
-	if not resolve_dependencies_2_co(raw_deps, installed_mods, out, resumer) then
+	if not resolve_dependencies_2(raw_deps, installed_mods, out) then
 		return nil
 	end
 
@@ -365,13 +334,6 @@ local function resolve_dependencies_co(package, game, resumer)
 	end)
 
 	return retval
-end
-
-
--- Resolve dependencies for a package, calls the recursive version.
-function contentdb.resolve_dependencies(package, game, callback)
-	local resumer = make_callback_coroutine(resolve_dependencies_co, callback)
-	resumer(package, game, resumer)
 end
 
 

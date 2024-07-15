@@ -63,12 +63,21 @@ local function install_or_update_package(this, package)
 	end
 
 	local function on_confirm()
-		local dlg = create_install_dialog(package)
-		dlg:set_parent(this)
-		this:hide()
-		dlg:show()
-
-		dlg:load_deps()
+		local has_hard_deps = contentdb.has_hard_deps(package)
+		if has_hard_deps then
+			local dlg = create_install_dialog(package)
+			dlg:set_parent(this)
+			this:hide()
+			dlg:show()
+		elseif has_hard_deps == nil then
+			local dlg = messagebox("error_checking_deps",
+					fgettext("Error getting dependencies for package"))
+			dlg:set_parent(this)
+			this:hide()
+			dlg:show()
+		else
+			contentdb.queue_download(package, package.path and contentdb.REASON_UPDATE or contentdb.REASON_NEW)
+		end
 	end
 
 	if package.type == "mod" and #pkgmgr.games == 0 then
