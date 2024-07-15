@@ -150,65 +150,50 @@ end
 --
 
 local waiting_confirm = {}
-local timeout_jobs = {}
-
-local function chat_confirm_run(name, reason)
-	local func = waiting_confirm[name]
-	if func then
-		waiting_confirm[name] = nil
-		timeout_jobs[name]:cancel()
-		timeout_jobs[name] = nil
-		return true, { func(reason) }
-	end
-	return false
-end
-
-local function chat_confirm_timeout(name)
-	chat_confirm_run(name, "timeout")
-end
 
 function core.chat_confirm(name, func)
 	if waiting_confirm[name] then
 		-- Drop the previously waiting function
-		chat_confirm_run(name, "override")
+		waiting_confirm[name]("override")
 	end
 
 	waiting_confirm[name] = func
-
-	local timeout = tonumber(core.settings:get("chat_confirm_timeout"))
-	if not timeout or timeout <= 0 then
-		timeout = 60
-	end
-	timeout_jobs[name] = core.after(timeout, chat_confirm_timeout, name)
 end
 
 core.register_chatcommand("confirm", {
 	description = S("Confirm a postponed action"),
 	func = function(name)
-		local success, rtn = chat_confirm_run(name, "yes")
-		if not success then
+		local func = waiting_confirm[name]
+		if not func then
 			return false, S("There is nothing to confirm.")
 		end
 
-		return unpack(rtn)
+		waiting_confirm[name] = nil
+		return func("yes")
 	end,
 })
 
 core.register_chatcommand("cancel", {
 	description = S("Cancel a postponed action"),
 	func = function(name)
-		local success, rtn = chat_confirm_run(name, "no")
-		if not success then
+		local func = waiting_confirm[name]
+		if not func then
 			return false, S("There is nothing to confirm.")
 		end
 
-		return unpack(rtn)
+		waiting_confirm[name] = nil
+		return func("no")
 	end,
 })
 
 core.register_on_leaveplayer(function(player)
 	local name = player:get_player_name()
-	chat_confirm_run(name, "left")
+	local func = waiting_confirm[name]
+	waiting_confirm[name] = nil
+
+	if func then
+		func("left")
+	end
 end)
 
 --
