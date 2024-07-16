@@ -84,3 +84,13 @@ local function run_player_add_pos_tests(player)
 end
 unittests.register("test_player_add_pos", run_player_add_pos_tests, {player=true})
 
+--
+-- Player defaults physics
+--
+local function run_player_default_physics_tests(player)
+	local player_overrides = player:get_physics_override()
+	for k, v in pairs(player_overrides) do
+		assert(minetest.DEFAULT_PHYSICS[k] == v)
+	end
+end
+unittests.register("test_player_default_physics", run_player_default_physics_tests, {player=true})
