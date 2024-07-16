@@ -318,9 +318,7 @@ struct alignas(u32) MapNode
 	//   compressed = true to zlib-compress output
 	static Buffer<u8> serializeBulk(int version,
 			const MapNode *nodes, u32 nodecount,
-			u8 content_width, u8 params_width,
-			u16 protocol_version,
-			const NodeDefManager *nodemgr);
+			u8 content_width, u8 params_width);
 	static void deSerializeBulk(std::istream &is, int version,
 			MapNode *nodes, u32 nodecount,
 			u8 content_width, u8 params_width);
