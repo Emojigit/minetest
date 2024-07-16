@@ -25,29 +25,6 @@ core.MAP_BLOCKSIZE = 16
 core.PLAYER_MAX_HP_DEFAULT = 20
 -- Default maximal breath of a player
 core.PLAYER_MAX_BREATH_DEFAULT = 10
--- DEFAULT_PHYSICS constants of a player
-core.DEFAULT_PHYSICS = {
-    speed = 1,
-    speed_walk = 1,
-    speed_climb = 1,
-    speed_crouch = 1,
-    speed_fast = 1,
-
-    jump = 1,
-    gravity = 1,
-
-    liquid_fluidity = 1,
-    liquid_fluidity_smooth = 1,
-    liquid_sink = 1,
-
-    acceleration_default = 1,
-    acceleration_air = 1,
-    acceleration_fast = 1,
-
-    sneak = true,
-    sneak_glitch = false,
-    new_move = true,
-}
 
 -- light.h
 -- Maximum value for node 'light_source' parameter

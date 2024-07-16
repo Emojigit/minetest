@@ -110,25 +110,25 @@ struct PlayerControl
 
 struct PlayerPhysicsOverride
 {
-	float speed = PLAYER_SPEED_DEFAULT;
-	float jump = PLAYER_JUMP_DEFAULT;
-	float gravity = PLAYER_GRAVITY_DEFAULT;
+	float speed = 1.f;
+	float jump = 1.f;
+	float gravity = 1.f;
 
-	bool sneak = PLAYER_SNEAK_DEFAULT;
-	bool sneak_glitch = PLAYER_SNEAK_GLITCH_DEFAULT;
+	bool sneak = true;
+	bool sneak_glitch = false;
 	// "Temporary" option for old move code
-	bool new_move = PLAYER_NEW_MOVE_DEFAULT;
+	bool new_move = true;
 
-	float speed_climb = PLAYER_SPEED_CLIMB_DEFAULT;
-	float speed_crouch = PLAYER_SPEED_CROUCH_DEFAULT;
-	float liquid_fluidity = PLAYER_LIQUID_FLUIDITY_DEFAULT;
-	float liquid_fluidity_smooth = PLAYER_LIQUID_FLUIDITY_SMOOTH_DEFAULT;
-	float liquid_sink = PLAYER_LIQUID_SINK_DEFAULT;
-	float acceleration_default = PLAYER_ACCELERATION_DEFAULT;
-	float acceleration_air = PLAYER_ACCELERATION_AIR_DEFAULT;
-	float speed_fast = PLAYER_SPEED_FAST_DEFAULT;
-	float acceleration_fast = PLAYER_ACCELERATION_FAST_DEFAULT;
-	float speed_walk = PLAYER_SPEED_WALK_DEFAULT;
+	float speed_climb = 1.f;
+	float speed_crouch = 1.f;
+	float liquid_fluidity = 1.f;
+	float liquid_fluidity_smooth = 1.f;
+	float liquid_sink = 1.f;
+	float acceleration_default = 1.f;
+	float acceleration_air = 1.f;
+	float speed_fast = 1.f;
+	float acceleration_fast = 1.f;
+	float speed_walk = 1.f;
 
 private:
 	auto tie() const {
