@@ -25,28 +25,28 @@ core.PLAYER_MAX_HP_DEFAULT = 20
 core.PLAYER_MAX_BREATH_DEFAULT = 10
 -- DEFAULT_PHYSICS constants of a player
 core.DEFAULT_PHYSICS = {
-    ["PLAYER_SPEED_DEFAULT"]                    =1,
-    ["PLAYER_SPEED_WALK_DEFAULT"]               =1,
-    ["PLAYER_SPEED_CLIMB_DEFAULT"]              =1,
-    ["PLAYER_SPEED_CROUCH_DEFAULT"]             =1,
-    ["PLAYER_SPEED_FAST_DEFAULT"]               =1,
+    speed = 1,
+    speed_walk = 1,
+    speed_climb = 1,
+    speed_crouch = 1,
+    speed_fast = 1,
 
-    ["PLAYER_JUMP_DEFAULT"]                     =1,
-    ["PLAYER_GRAVITY_DEFAULT"]                  =1,
+    jump = 1,
+    gravity = 1,
 
+    liquid_fluidity = 1,
+    liquid_fluidity_smooth = 1,
+    liquid_sink = 1,
 
-    ["PLAYER_LIQUID_FLUIDITY_DEFAULT"]          =1,
-    ["PLAYER_LIQUID_FLUIDITY_SMOOTH_DEFAULT"]   =1,
-    ["PLAYER_LIQUID_SINK_DEFAULT"]              =1,
+    acceleration_default = 1,
+    acceleration_air = 1,
+    acceleration_fast = 1,
 
-    ["PLAYER_ACCELERATION_DEFAULT"]             =1,
-    ["PLAYER_ACCELERATION_AIR_DEFAULT"]         =1,
-    ["PLAYER_ACCELERATION_FAST_DEFAULT"]        =1,
-
-    ["PLAYER_SNEAK_DEFAULT"]                    =true,
-    ["PLAYER_SNEAK_GLITCH_DEFAULT"]             =false,
-    ["PLAYER_NEW_MOVE_DEFAULT"]                 =true,
+    sneak = true,
+    sneak_glitch = false,
+    new_move = true,
 }
+
 -- light.h
 -- Maximum value for node 'light_source' parameter
 core.LIGHT_MAX = 14
