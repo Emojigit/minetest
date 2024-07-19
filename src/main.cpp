@@ -126,6 +126,8 @@ static bool run_dedicated_server(const GameParams &game_params, const Settings &
 static bool migrate_map_database(const GameParams &game_params, const Settings &cmd_args);
 static bool recompress_map_database(const GameParams &game_params, const Settings &cmd_args);
 
+static void update_main_config();
+
 /**********************************************************************/
 
 
@@ -266,9 +268,7 @@ int main(int argc, char *argv[])
 	retval = 0;
 #endif
 
-	// Update configuration file
-	if (!g_settings_path.empty())
-		g_settings->updateConfigFile(g_settings_path.c_str());
+	update_main_config();
 
 	print_modified_quicktune_values();
 
@@ -1134,10 +1134,12 @@ static bool run_dedicated_server(const GameParams &game_params, const Settings &
 		} catch (const ModError &e) {
 			g_term_console.stopAndWaitforThread();
 			errorstream << "ModError: " << e.what() << std::endl;
+			update_main_config();
 			return false;
 		} catch (const ServerError &e) {
 			g_term_console.stopAndWaitforThread();
 			errorstream << "ServerError: " << e.what() << std::endl;
+			update_main_config();
 			return false;
 		}
 
@@ -1165,12 +1167,16 @@ static bool run_dedicated_server(const GameParams &game_params, const Settings &
 
 		} catch (const ModError &e) {
 			errorstream << "ModError: " << e.what() << std::endl;
+			update_main_config();
 			return false;
 		} catch (const ServerError &e) {
 			errorstream << "ServerError: " << e.what() << std::endl;
+			update_main_config();
 			return false;
 		}
 	}
+
+	update_main_config();
 
 	return true;
 }
@@ -1307,4 +1313,12 @@ static bool recompress_map_database(const GameParams &game_params, const Setting
 
 	actionstream << "Done, " << count << " blocks were recompressed." << std::endl;
 	return true;
+}
+
+// Update configuration file if set
+static void update_main_config()
+{
+	actionstream << "Updating minetest.conf..." << std::endl;
+	if (!g_settings_path.empty())
+		g_settings->updateConfigFile(g_settings_path.c_str());
 }
