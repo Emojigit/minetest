@@ -97,3 +97,23 @@ local function run_player_default_physics_tests(player)
 	player:set_physics_override(player_overrides)
 end
 unittests.register("test_player_default_physics", run_player_default_physics_tests, {player=true})
+
+-- Hotbar selection clamp
+--
+local function run_player_hotbar_clamp_tests(player)
+	local inv = player:get_inventory()
+	local old_inv_size = inv:get_size("main")
+	local old_bar_size = player:hud_get_hotbar_itemcount()
+
+	inv:set_size("main", 5)
+
+	player:hud_set_hotbar_itemcount(2)
+	assert(player:hud_get_hotbar_itemcount() == 2)
+
+	player:hud_set_hotbar_itemcount(6)
+	assert(player:hud_get_hotbar_itemcount() == 5)
+
+	inv:set_size("main", old_inv_size)
+	player:hud_set_hotbar_itemcount(old_bar_size)
+end
+unittests.register("test_player_hotbar_clamp", run_player_hotbar_clamp_tests, {player=true})
