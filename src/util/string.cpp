@@ -971,7 +971,7 @@ v3f str_to_v3f(std::string_view str)
 {
 	v3f value;
 	Strfnd f(str);
-	f.next("(");
+	f.skip_over("(");
 	value.X = stof(f.next(","));
 	value.Y = stof(f.next(","));
 	value.Z = stof(f.next(")"));

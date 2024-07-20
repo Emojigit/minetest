@@ -25,6 +25,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "settings.h"
 #include "noise.h"
 #include "log.h"
+#include <common/c_converter.h>
+#include "../../util/strfnd.h"
 
 
 /* This protects the following from being set:
@@ -184,6 +186,50 @@ int LuaSettings::l_get_flags(lua_State *L)
 			lua_setfield(L, table, flagdesc[i].name);
 		}
 		lua_pushvalue(L, table);
+	} else {
+		lua_pushnil(L);
+	}
+
+	return 1;
+}
+
+// get_pos(self, key) -> vector
+int LuaSettings::l_get_pos(lua_State *L)
+{
+	NO_MAP_LOCK_REQUIRED;
+	LuaSettings *o = checkObject<LuaSettings>(L, 1);
+	std::string key = std::string(luaL_checkstring(L, 2));
+
+	if (o->m_settings->exists(key)) {
+		std::string raw_value = o->m_settings->get(key);
+		
+		// We can't use str_to_v3f because we return nil on invalid
+		v3f value;
+		Strfnd f(raw_value);
+		f.skip_over("(");
+
+		std::string x = f.next(",");
+		if (x.empty()) {
+			lua_pushnil(L);
+			return 1;
+		}
+		value.X = stof(x);
+
+		std::string y = f.next(",");
+		if (y.empty()) {
+			lua_pushnil(L);
+			return 1;
+		}
+		value.Y = stof(y);
+
+		std::string z = f.next(")");
+		if (z.empty()) {
+			lua_pushnil(L);
+			return 1;
+		}
+		value.Z = stof(z);
+
+		push_v3f(L, value);
 	} else {
 		lua_pushnil(L);
 	}
@@ -370,6 +416,7 @@ const luaL_Reg LuaSettings::methods[] = {
 	luamethod(LuaSettings, get_bool),
 	luamethod(LuaSettings, get_np_group),
 	luamethod(LuaSettings, get_flags),
+	luamethod(LuaSettings, get_pos),
 	luamethod(LuaSettings, set),
 	luamethod(LuaSettings, set_bool),
 	luamethod(LuaSettings, set_np_group),

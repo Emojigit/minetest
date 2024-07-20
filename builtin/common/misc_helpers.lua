@@ -430,6 +430,7 @@ function core.pos_to_string(pos, decimal_places)
 end
 
 --------------------------------------------------------------------------------
+-- This should be kept consistant with str_to_v3f and str_to_v3f_strict
 function core.string_to_pos(value)
 	if value == nil then
 		return nil

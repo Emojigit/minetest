@@ -5964,6 +5964,7 @@ Setting-related
   main config file (`minetest.conf`). See [`Settings`].
 * `minetest.setting_get_pos(name)`: Loads a setting from the main settings and
   parses it as a position (in the format `(1,2,3)`). Returns a position or nil.
+    * This is an alias to `minetest.settings:get_pos(name)`.
 
 Authentication
 --------------
@@ -8671,6 +8672,9 @@ means that no defaults will be returned for mod settings.
     * Is currently limited to mapgen flags `mg_flags` and mapgen-specific
       flags like `mgv5_spflags`.
     * Returns `nil` if `key` is not found.
+* `get_pos(key)`:
+    * Parses the setting as a position (in the format `(1,2,3)` or `1,2,3`).
+      Returns a position or nil.
 * `set(key, value)`
     * Setting names can't contain whitespace or any of `="{}#`.
     * Setting values can't contain the sequence `\n"""`.
