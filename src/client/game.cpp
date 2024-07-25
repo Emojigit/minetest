@@ -2188,16 +2188,14 @@ void Game::processItemSelection(u16 *new_playeritem)
 {
 	LocalPlayer *player = client->getEnv().getLocalPlayer();
 
+	*new_playeritem = player->getWieldIndex();
+	u16 max_item = player->getMaxHotbarItemcount();
+	if (max_item == 0)
+		return;
+	max_item -= 1;
+
 	/* Item selection using mouse wheel
 	 */
-	Inventory *inventory = &player->inventory;
-	InventoryList *mainlist = inventory->getList("main");
-	if (mainlist == nullptr)
-		return;
-	*new_playeritem = player->getWieldIndex();
-	u16 max_item = MYMIN((s32) mainlist->getSize() - 1,
-		    player->hud_hotbar_itemcount - 1);
-
 	s32 wheel = input->getMouseWheel();
 	if (!m_enable_hotbar_mouse_wheel)
 		wheel = 0;
