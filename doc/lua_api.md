@@ -4036,8 +4036,8 @@ Helper functions
     * returns a deep copy of `table`
 * `table.indexof(list, val)`: returns the smallest numerical index containing
       the value `val` in the table `list`. Non-numerical indices are ignored.
-      If `val` could not be found, `-1` is returned. `list` must not have
-      negative indices, and must not have holes.
+      If `val` could not be found, `-1` is returned. `list` must be a sequence,
+      i.e. table with keys from 1 to n, while none of the values are `nil`.
 * `table.keyof(table, val)`: returns the key containing
       the value `val` in the table `table`. If multiple keys contain `val`,
       it is unspecified which key will be returned.
