@@ -209,6 +209,11 @@ describe("table", function()
 			assert.equal(v, w) -- vector overrides ==
 		end)
 	end)
+
+	it("keyof()", function()
+		assert.equal("a", table.indexof({a = "foo", b = "bar"}, "foo"))
+		assert.equal(nil, table.indexof({a = "foo", b = "bar"}, "baz"))
+	end)
 end)
 
 describe("formspec_escape", function()
