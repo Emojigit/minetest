@@ -116,6 +116,8 @@ void *ServerThread::run()
 		m_server->setAsyncFatalError(e.what());
 	} catch (LuaError &e) {
 		m_server->setAsyncFatalError(e);
+	} catch (ModError &e) {
+		m_server->setAsyncFatalError(e.what());
 	}
 
 	float dtime = 0.0f;
@@ -142,6 +144,8 @@ void *ServerThread::run()
 			m_server->setAsyncFatalError(e.what());
 		} catch (LuaError &e) {
 			m_server->setAsyncFatalError(e);
+		} catch (ModError &e) {
+			m_server->setAsyncFatalError(e.what());
 		}
 
 		dtime = 1e-6f * (porting::getTimeUs() - t0);
@@ -254,11 +258,7 @@ Server::Server(
 	m_simple_singleplayer_mode(simple_singleplayer_mode),
 	m_dedicated(dedicated),
 	m_async_fatal_error(""),
-	m_con(std::make_shared<con::Connection>(PROTOCOL_ID,
-			512,
-			CONNECTION_TIMEOUT,
-			m_bind_addr.isIPv6(),
-			this)),
+	m_con(con::createMTP(CONNECTION_TIMEOUT, m_bind_addr.isIPv6(), this)),
 	m_itemdef(createItemDefManager()),
 	m_nodedef(createNodeDefManager()),
 	m_craftdef(createCraftDefManager()),
@@ -781,6 +781,12 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
 		//infostream<<"Server: Checking added and deleted active objects"<<std::endl;
 		MutexAutoLock envlock(m_env_mutex);
 
+		// This guarantees that each object recomputes its cache only once per server step,
+		// unless get_effective_observers is called.
+		// If we were to update observer sets eagerly in set_observers instead,
+		// the total costs of calls to set_observers could theoretically be higher.
+		m_env->invalidateActiveObjectObserverCaches();
+
 		{
 			ClientInterface::AutoLock clientlock(m_clients);
 			const RemoteClientMap &clients = m_clients.getClientList();
@@ -1153,7 +1159,7 @@ PlayerSAO* Server::StageTwoClientInit(session_t peer_id)
 	*/
 	{
 		NetworkPacket notice_pkt(TOCLIENT_UPDATE_PLAYER_LIST, 0, PEER_ID_INEXISTENT);
-		notice_pkt << (u8) PLAYER_LIST_ADD << (u16) 1 << std::string(player->getName());
+		notice_pkt << (u8) PLAYER_LIST_ADD << (u16) 1 << player->getName();
 		m_clients.sendToAll(&notice_pkt);
 	}
 	{
@@ -1248,7 +1254,7 @@ void Server::onMapEditEvent(const MapEditEvent &event)
 	m_unsent_map_edit_queue.push(new MapEditEvent(event));
 }
 
-void Server::peerAdded(con::Peer *peer)
+void Server::peerAdded(con::IPeer *peer)
 {
 	verbosestream<<"Server::peerAdded(): peer->id="
 			<<peer->id<<std::endl;
@@ -1256,7 +1262,7 @@ void Server::peerAdded(con::Peer *peer)
 	m_peer_change_queue.push(con::PeerChange(con::PEER_ADDED, peer->id, false));
 }
 
-void Server::deletingPeer(con::Peer *peer, bool timeout)
+void Server::deletingPeer(con::IPeer *peer, bool timeout)
 {
 	verbosestream<<"Server::deletingPeer(): peer->id="
 			<<peer->id<<", timeout="<<timeout<<std::endl;
@@ -3166,14 +3172,11 @@ std::string Server::getStatusString()
 	bool first = true;
 	os << " | clients: ";
 	if (m_env) {
-		std::vector<session_t> clients = m_clients.getClientIDs();
-		for (session_t client_id : clients) {
-			RemotePlayer *player = m_env->getPlayer(client_id);
+		std::vector<std::string> player_names = m_clients.getPlayerNames();
 
-			// Get name of player
-			const char *name = player ? player->getName() : "<unknown>";
+		std::sort(player_names.begin(), player_names.end());
 
-			// Add name to information string
+		for (const std::string& name : player_names) {
 			if (!first)
 				os << ", ";
 			else
