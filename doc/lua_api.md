@@ -1744,6 +1744,13 @@ Displays a horizontal bar made up of half-images with an optional background.
 * `item`: Position of item that is selected.
 * `direction`: Direction the list will be displayed in
 * `offset`: offset in pixels from position.
+* `alignment`: The alignment of the inventory. Aligned at the top left corner if not specified.
+
+### `hotbar`
+
+* `direction`: Direction the list will be displayed in
+* `offset`: offset in pixels from position.
+* `alignment`: The alignment of the inventory.
 
 ### `waypoint`
 
@@ -1802,6 +1809,11 @@ Displays a minimap on the HUD.
 
 * `size`: Size of the minimap to display. Minimap should be a square to avoid
   distortion.
+  * Negative values represent percentages of the screen. If either `x` or `y`
+    is specified as a percentage, the resulting pixel size will be used for
+    both `x` and `y`. Example: On a 1920x1080 screen, `{x = 0, y = -25}` will
+    result in a 270x270 minimap.
+  * Negative values are supported starting with protocol version 45.
 * `alignment`: The alignment of the minimap.
 * `offset`: offset in pixels from position.
 
@@ -3852,12 +3864,20 @@ vectors are written like this: `(x, y, z)`:
     * If `v` has zero length, returns `(0, 0, 0)`.
 * `vector.floor(v)`:
     * Returns a vector, each dimension rounded down.
+* `vector.ceil(v)`:
+    * Returns a vector, each dimension rounded up.
 * `vector.round(v)`:
     * Returns a vector, each dimension rounded to nearest integer.
     * At a multiple of 0.5, rounds away from zero.
-* `vector.apply(v, func)`:
+* `vector.sign(v, tolerance)`:
+    * Returns a vector where `math.sign` was called for each component.
+    * See [Helper functions] for details.
+* `vector.abs(v)`:
+    * Returns a vector with absolute values for each component.
+* `vector.apply(v, func, ...)`:
     * Returns a vector where the function `func` has been applied to each
       component.
+    * `...` are optional arguments passed to `func`.
 * `vector.combine(v, w, func)`:
     * Returns a vector where the function `func` has combined both components of `v` and `w`
       for each component
@@ -3881,6 +3901,10 @@ vectors are written like this: `(x, y, z)`:
     * Returns a boolean value indicating if `pos` is inside area formed by `min` and `max`.
     * `min` and `max` are inclusive.
     * If `min` is bigger than `max` on some axis, function always returns false.
+    * You can use `vector.sort` if you have two vectors and don't know which are the minimum and the maximum.
+* `vector.random_in_area(min, max)`:
+    * Returns a random integer position in area formed by `min` and `max`
+    * `min` and `max` are inclusive.
     * You can use `vector.sort` if you have two vectors and don't know which are the minimum and the maximum.
 
 For the following functions `x` can be either a vector or a number:
@@ -5461,6 +5485,8 @@ Utilities
       moveresult_new_pos = true,
       -- Allow removing definition fields in `minetest.override_item` (5.9.0)
       override_item_remove_fields = true,
+      -- The predefined hotbar is a Lua HUD element of type `hotbar` (5.10.0)
+      hotbar_hud_element = true,
   }
   ```
 
@@ -7108,7 +7134,7 @@ Misc.
   could be used as a player name (regardless of whether said player exists).
 * `minetest.hud_replace_builtin(name, hud_definition)`
     * Replaces definition of a builtin hud element
-    * `name`: `"breath"`, `"health"` or `"minimap"`
+    * `name`: `"breath"`, `"health"`, `"minimap"` or `"hotbar"`
     * `hud_definition`: definition to replace builtin definition
 * `minetest.parse_relative_number(arg, relative_to)`: returns number or nil
     * Helper function for chat commands.
@@ -10656,8 +10682,9 @@ Used by `ObjectRef:hud_add`. Returned by `ObjectRef:hud_get`.
 ```lua
 {
     type = "image",
-    -- Type of element, can be "image", "text", "statbar", "inventory",
-    -- "waypoint", "image_waypoint", "compass" or "minimap"
+    -- Type of element, can be "compass", "hotbar" (46 ¹), "image", "image_waypoint",
+    -- "inventory", "minimap" (44 ¹), "statbar", "text" or "waypoint"
+    -- ¹: minimal protocol version for client-side support
     -- If undefined "text" will be used.
 
     hud_elem_type = "image",
@@ -11003,7 +11030,7 @@ Types used are defined in the previous section.
 * vec3 range `acc`: the direction and speed with which the particle
   accelerates
 
-* vec3 range `size`: scales the visual size of the particle texture.
+* float range `size`: scales the visual size of the particle texture.
   if `node` is set, this can be set to 0 to spawn randomly-sized particles
   (just like actual node dig particles).
 

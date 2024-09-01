@@ -15,6 +15,26 @@
 --with this program; if not, write to the Free Software Foundation, Inc.,
 --51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+local function is_still_visible(dlg)
+	local this = ui.find_by_name("install_dialog")
+	return this == dlg and not dlg.hidden
+end
+
+
+local function get_loading_formspec()
+	local TOUCH_GUI = core.settings:get_bool("touch_gui")
+	local w = TOUCH_GUI and 14 or 7
+
+	local formspec = {
+		"formspec_version[3]",
+		"size[", w, ",9.05]",
+		TOUCH_GUI and "padding[0.01,0.01]" or "position[0.5,0.55]",
+		"label[3,4.525;", fgettext("Loading..."), "]",
+	}
+	return table.concat(formspec)
+end
+
+
 local function get_formspec(data)
 	local selected_game, selected_game_idx = pkgmgr.find_by_gameid(core.settings:get("menu_last_game"))
 	if not selected_game_idx then
@@ -66,18 +86,18 @@ local function get_formspec(data)
 		message_bg = mt_color_orange
 	end
 
-	local ENABLE_TOUCH = core.settings:get_bool("enable_touch")
+	local TOUCH_GUI = core.settings:get_bool("touch_gui")
 
-	local w = ENABLE_TOUCH and 14 or 7
+	local w = TOUCH_GUI and 14 or 7
 	local padded_w = w - 2*0.375
-	local dropdown_w = ENABLE_TOUCH and 10.2 or 4.25
+	local dropdown_w = TOUCH_GUI and 10.2 or 4.25
 	local button_w = (padded_w - 0.25) / 3
 	local button_pad = button_w / 2
 
 	local formspec = {
 		"formspec_version[3]",
 		"size[", w, ",9.05]",
-		ENABLE_TOUCH and "padding[0.01,0.01]" or "position[0.5,0.55]",
+		TOUCH_GUI and "padding[0.01,0.01]" or "position[0.5,0.55]",
 		"style[title;border=false]",
 		"box[0,0;", w, ",0.8;#3333]",
 		"button[0,0;", w, ",0.8;title;", fgettext("Install $1", package.title) , "]",
