@@ -133,28 +133,31 @@ Hud::Hud(Client *client, LocalPlayer *player,
 			rangelim(g_settings->getS16("selectionbox_width"), 1, 5);
 
 	// Prepare mesh for compass drawing
-	auto &b = m_rotation_mesh_buffer;
-	b.Vertices.resize(4);
-	b.Indices.resize(6);
+	m_rotation_mesh_buffer.reset(new scene::SMeshBuffer());
+	auto *b = m_rotation_mesh_buffer.get();
+	auto &vertices = b->Vertices->Data;
+	auto &indices = b->Indices->Data;
+	vertices.resize(4);
+	indices.resize(6);
 
 	video::SColor white(255, 255, 255, 255);
 	v3f normal(0.f, 0.f, 1.f);
 
-	b.Vertices[0] = video::S3DVertex(v3f(-1.f, -1.f, 0.f), normal, white, v2f(0.f, 1.f));
-	b.Vertices[1] = video::S3DVertex(v3f(-1.f,  1.f, 0.f), normal, white, v2f(0.f, 0.f));
-	b.Vertices[2] = video::S3DVertex(v3f( 1.f,  1.f, 0.f), normal, white, v2f(1.f, 0.f));
-	b.Vertices[3] = video::S3DVertex(v3f( 1.f, -1.f, 0.f), normal, white, v2f(1.f, 1.f));
+	vertices[0] = video::S3DVertex(v3f(-1.f, -1.f, 0.f), normal, white, v2f(0.f, 1.f));
+	vertices[1] = video::S3DVertex(v3f(-1.f,  1.f, 0.f), normal, white, v2f(0.f, 0.f));
+	vertices[2] = video::S3DVertex(v3f( 1.f,  1.f, 0.f), normal, white, v2f(1.f, 0.f));
+	vertices[3] = video::S3DVertex(v3f( 1.f, -1.f, 0.f), normal, white, v2f(1.f, 1.f));
 
-	b.Indices[0] = 0;
-	b.Indices[1] = 1;
-	b.Indices[2] = 2;
-	b.Indices[3] = 2;
-	b.Indices[4] = 3;
-	b.Indices[5] = 0;
+	indices[0] = 0;
+	indices[1] = 1;
+	indices[2] = 2;
+	indices[3] = 2;
+	indices[4] = 3;
+	indices[5] = 0;
 
-	b.getMaterial().Lighting = false;
-	b.getMaterial().MaterialType = video::EMT_TRANSPARENT_ALPHA_CHANNEL;
-	b.setHardwareMappingHint(scene::EHM_STATIC);
+	b->getMaterial().Lighting = false;
+	b->getMaterial().MaterialType = video::EMT_TRANSPARENT_ALPHA_CHANNEL;
+	b->setHardwareMappingHint(scene::EHM_STATIC);
 }
 
 void Hud::readScalingSetting()
@@ -656,10 +659,10 @@ void Hud::drawCompassRotate(HudElement *e, video::ITexture *texture,
 	driver->setTransform(video::ETS_VIEW, core::matrix4());
 	driver->setTransform(video::ETS_WORLD, Matrix);
 
-	video::SMaterial &material = m_rotation_mesh_buffer.getMaterial();
+	auto &material = m_rotation_mesh_buffer->getMaterial();
 	material.TextureLayers[0].Texture = texture;
 	driver->setMaterial(material);
-	driver->drawMeshBuffer(&m_rotation_mesh_buffer);
+	driver->drawMeshBuffer(m_rotation_mesh_buffer.get());
 
 	driver->setTransform(video::ETS_WORLD, core::matrix4());
 	driver->setTransform(video::ETS_VIEW, oldViewMat);
