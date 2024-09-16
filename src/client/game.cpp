@@ -79,6 +79,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "hud.h"
 #include "clientdynamicinfo.h"
 #include <IAnimatedMeshSceneNode.h>
+#include "util/tracy_wrapper.h"
 
 #if USE_SOUND
 	#include "client/sound/sound_openal.h"
@@ -1140,6 +1141,8 @@ bool Game::startup(bool *kill,
 
 void Game::run()
 {
+	ZoneScoped;
+
 	ProfilerGraph graph;
 	RunStats stats = {};
 	CameraOrientation cam_view_target = {};
@@ -1167,14 +1170,20 @@ void Game::run()
 	const bool initial_window_maximized = !g_settings->getBool("fullscreen") &&
 			g_settings->getBool("window_maximized");
 
+	auto framemarker = FrameMarker("Game::run()-frame").started();
+
 	while (m_rendering_engine->run()
 			&& !(*kill || g_gamecallback->shutdown_requested
 			|| (server && server->isShutdownRequested()))) {
+
+		framemarker.end();
 
 		// Calculate dtime =
 		//    m_rendering_engine->run() from this iteration
 		//  + Sleep time until the wanted FPS are reached
 		draw_times.limit(device, &dtime, g_menumgr.pausesGame());
+
+		framemarker.start();
 
 		const auto current_dynamic_info = ClientDynamicInfo::getCurrent();
 		if (!current_dynamic_info.equal(client_display_info)) {
@@ -1231,6 +1240,8 @@ void Game::run()
 			showPauseMenu();
 		}
 	}
+
+	framemarker.end();
 
 	RenderingEngine::autosaveScreensizeAndCo(initial_screen_size, initial_window_maximized);
 }
@@ -1671,9 +1682,13 @@ bool Game::connectToServer(const GameStartData &start_data,
 
 		fps_control.reset();
 
+		auto framemarker = FrameMarker("Game::connectToServer()-frame").started();
+
 		while (m_rendering_engine->run()) {
 
+			framemarker.end();
 			fps_control.limit(device, &dtime);
+			framemarker.start();
 
 			// Update client and server
 			step(dtime);
@@ -1719,6 +1734,7 @@ bool Game::connectToServer(const GameStartData &start_data,
 			// Update status
 			showOverlayMessage(N_("Connecting to server..."), dtime, 20);
 		}
+		framemarker.end();
 	} catch (con::PeerNotFoundException &e) {
 		warningstream << "This should not happen. Please report a bug." << std::endl;
 		return false;
@@ -1736,9 +1752,11 @@ bool Game::getServerContent(bool *aborted)
 
 	fps_control.reset();
 
+	auto framemarker = FrameMarker("Game::getServerContent()-frame").started();
 	while (m_rendering_engine->run()) {
-
+		framemarker.end();
 		fps_control.limit(device, &dtime);
+		framemarker.start();
 
 		// Update client and server
 		step(dtime);
@@ -1804,6 +1822,7 @@ bool Game::getServerContent(bool *aborted)
 				texture_src, dtime, progress);
 		}
 	}
+	framemarker.end();
 
 	*aborted = true;
 	infostream << "Connect aborted [device]" << std::endl;
@@ -1953,7 +1972,10 @@ void Game::updateProfilers(const RunStats &stats, const FpsControl &draw_times,
 	g_profiler->graphSet("FPS", 1.0f / dtime);
 
 	auto stats2 = driver->getFrameStats();
-	g_profiler->avg("Irr: primitives drawn", stats2.PrimitivesDrawn);
+	g_profiler->avg("Irr: drawcalls", stats2.Drawcalls);
+	if (stats2.Drawcalls > 0)
+		g_profiler->avg("Irr: primitives per drawcall",
+			stats2.PrimitivesDrawn / float(stats2.Drawcalls));
 	g_profiler->avg("Irr: buffers uploaded", stats2.HWBuffersUploaded);
 	g_profiler->avg("Irr: buffers uploaded (bytes)", stats2.HWBuffersUploadedSize);
 }
@@ -2770,6 +2792,8 @@ void Game::updatePauseState()
 
 inline void Game::step(f32 dtime)
 {
+	ZoneScoped;
+
 	if (server) {
 		float fps_max = (!device->isWindowFocused() || g_menumgr.pausesGame()) ?
 				g_settings->getFloat("fps_max_unfocused") :
@@ -3354,7 +3378,7 @@ void Game::processPlayerInteraction(f32 dtime, bool show_hud)
 		infostream << "Pointing at " << pointed.dump() << std::endl;
 
 	if (g_touchcontrols) {
-		auto mode = selected_def.touch_interaction.getMode(pointed.type);
+		auto mode = selected_def.touch_interaction.getMode(selected_def, pointed.type);
 		g_touchcontrols->applyContextControls(mode);
 		// applyContextControls may change dig/place input.
 		// Update again so that TOSERVER_INTERACT packets have the correct controls set.
@@ -4049,6 +4073,7 @@ void Game::handleDigging(const PointedThing &pointed, const v3s16 &nodepos,
 void Game::updateFrame(ProfilerGraph *graph, RunStats *stats, f32 dtime,
 		const CameraOrientation &cam)
 {
+	ZoneScoped;
 	TimeTaker tt_update("Game::updateFrame()");
 	LocalPlayer *player = client->getEnv().getLocalPlayer();
 
@@ -4308,6 +4333,8 @@ void Game::updateShadows()
 
 void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
 {
+	ZoneScoped;
+
 	const video::SColor fog_color = this->sky->getFogColor();
 	const video::SColor sky_color = this->sky->getSkyColor();
 
