@@ -1470,7 +1470,8 @@ Look for examples in `games/devtest` or `games/minetest_game`.
       'Connected Glass'.
 * `allfaces`
     * Often used for partially-transparent nodes.
-    * External and internal sides of textures are visible.
+    * External sides of textures, and unlike other drawtypes, the external sides
+      of other blocks, are visible from the inside.
 * `allfaces_optional`
     * Often used for leaves nodes.
     * This switches between `normal`, `glasslike` and `allfaces` according to
@@ -5524,6 +5525,10 @@ Utilities
       override_item_remove_fields = true,
       -- The predefined hotbar is a Lua HUD element of type `hotbar` (5.10.0)
       hotbar_hud_element = true,
+      -- Bulk LBM support (5.10.0)
+      bulk_lbms = true,
+      -- ABM supports field without_neighbors (5.10.0)
+      abm_without_neighbors = true,
   }
   ```
 
@@ -5847,8 +5852,13 @@ Call these functions only at load time!
     * `clicker`: ObjectRef - Object that acted upon `player`, may or may not be a player
 * `minetest.register_on_player_hpchange(function(player, hp_change, reason), modifier)`
     * Called when the player gets damaged or healed
+    * When `hp == 0`, damage doesn't trigger this callback.
+    * When `hp == hp_max`, healing does still trigger this callback.
     * `player`: ObjectRef of the player
     * `hp_change`: the amount of change. Negative when it is damage.
+      * Historically, the new HP value was clamped to [0, 65535] before
+        calculating the HP change. This clamping has been removed as of
+        Minetest 5.10.0
     * `reason`: a PlayerHPChangeReason table.
         * The `type` field will have one of the following values:
             * `set_hp`: A mod or the engine called `set_hp` without
@@ -5869,6 +5879,7 @@ Call these functions only at load time!
 * `minetest.register_on_dieplayer(function(ObjectRef, reason))`
     * Called when a player dies
     * `reason`: a PlayerHPChangeReason table, see register_on_player_hpchange
+    * For customizing the death screen, see `minetest.show_death_screen`.
 * `minetest.register_on_respawnplayer(function(ObjectRef))`
     * Called when player is to be respawned
     * Called _before_ repositioning of player occurs
@@ -6145,6 +6156,8 @@ Environment access
 * `minetest.swap_node(pos, node)`
     * Swap node at position with another.
     * This keeps the metadata intact and will not run con-/destructor callbacks.
+* `minetest.bulk_swap_node({pos1, pos2, pos3, ...}, node)`
+    * Equivalent to `minetest.swap_node` but in bulk.
 * `minetest.remove_node(pos)`: Remove a node
     * Equivalent to `minetest.set_node(pos, {name="air"})`, but a bit faster.
 * `minetest.get_node(pos)`
@@ -6571,6 +6584,13 @@ Formspec
         * `"INV"`: something failed
         * `"CHG"`: has been changed
         * `"VAL"`: not changed
+* `minetest.show_death_screen(player, reason)`
+    * Called when the death screen should be shown.
+    * `player` is an ObjectRef, `reason` is a PlayerHPChangeReason table or nil.
+    * By default, this shows a simple formspec with the option to respawn.
+      Respawning is done via `ObjectRef:respawn`.
+    * You can override this to show a custom death screen.
+    * For general death handling, use `minetest.register_on_dieplayer` instead.
 
 Item handling
 -------------
@@ -8519,6 +8539,8 @@ child will follow movement and rotation of that bone.
           if set to zero the clouds are rendered flat.
         * `speed`: 2D cloud speed + direction in nodes per second
           (default `{x=0, z=-2}`).
+        * `shadow`: shadow color, applied to the base of the cloud
+          (default `#cccccc`).
 * `get_clouds()`: returns a table with the current cloud parameters as in
   `set_clouds`.
 * `override_day_night_ratio(ratio or nil)`
@@ -8565,6 +8587,9 @@ child will follow movement and rotation of that bone.
             (eg. -1 and 1 is the same saturation and luma, but different hues)
       * `shadows` is a table that controls ambient shadows
         * `intensity` sets the intensity of the shadows from 0 (no shadows, default) to 1 (blackness)
+            * This value has no effect on clients who have the "Dynamic Shadows" shader disabled.
+        * `tint` tints the shadows with the provided color, with RGB values ranging from 0 to 255.
+          (default `{r=0, g=0, b=0}`)
             * This value has no effect on clients who have the "Dynamic Shadows" shader disabled.
       * `exposure` is a table that controls automatic exposure.
         The basic exposure factor equation is `e = 2^exposure_correction / clamp(luminance, 2^luminance_min, 2^luminance_max)`
@@ -9092,6 +9117,11 @@ Used by `minetest.register_abm`.
     -- If left out or empty, any neighbor will do.
     -- `group:groupname` can also be used here.
 
+    without_neighbors = {"default:lava_source", "default:lava_flowing"},
+    -- Only apply `action` to nodes that have no one of these neighbors.
+    -- If left out or empty, it has no effect.
+    -- `group:groupname` can also be used here.
+
     interval = 10.0,
     -- Operation interval in seconds
 
@@ -9127,7 +9157,12 @@ Used by `minetest.register_lbm`.
 
 A loading block modifier (LBM) is used to define a function that is called for
 specific nodes (defined by `nodenames`) when a mapblock which contains such nodes
-gets activated (not loaded!)
+gets activated (not loaded!).
+
+Note: LBMs operate on a "snapshot" of node positions taken once before they are triggered.
+That means if an LBM callback adds a node, it won't be taken into account.
+However the engine guarantees that when the callback is called that all given position(s)
+contain a matching node.
 
 ```lua
 {
@@ -9151,7 +9186,13 @@ gets activated (not loaded!)
     action = function(pos, node, dtime_s) end,
     -- Function triggered for each qualifying node.
     -- `dtime_s` is the in-game time (in seconds) elapsed since the block
-    -- was last active
+    -- was last active.
+
+    bulk_action = function(pos_list, dtime_s) end,
+    -- Function triggered with a list of all applicable node positions at once.
+    -- This can be provided as an alternative to `action` (not both).
+    -- Available since `minetest.features.bulk_lbms` (5.10.0)
+    -- `dtime_s`: as above
 }
 ```
 

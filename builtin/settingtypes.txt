@@ -262,7 +262,7 @@ viewing_range (Viewing range) int 190 20 4000
 #    Higher values result in a less detailed image.
 undersampling (Undersampling) int 1 1 8
 
-[**Graphics Effects]
+[**Graphical Effects]
 
 #    Allows liquids to be translucent.
 translucent_liquids (Translucent liquids) bool true
@@ -403,6 +403,11 @@ enable_clouds (Clouds) bool true
 #    Requires: enable_clouds
 enable_3d_clouds (3D clouds) bool true
 
+#   Use smooth cloud shading.
+#
+#   Requires: enable_3d_clouds, enable_clouds
+soft_clouds (Soft clouds) bool false
+
 [**Filtering and Antialiasing]
 
 #    Use mipmaps when scaling textures. May slightly increase performance,
@@ -463,12 +468,6 @@ enable_raytraced_culling (Enable Raytraced Culling) bool true
 
 [*Shaders]
 
-#    Shaders allow advanced visual effects and may increase performance on some video
-#    cards.
-#
-#    Requires: shaders_support
-enable_shaders (Shaders) bool true
-
 [**Waving Nodes]
 
 #    Set to true to enable waving leaves.
@@ -504,6 +503,11 @@ water_wave_length (Waving liquids wavelength) float 20.0 0.1
 #
 #    Requires: shaders, enable_waving_water
 water_wave_speed (Waving liquids wave speed) float 5.0
+
+#   When enabled, liquid reflections are simulated.
+#
+#   Requires: shaders, enable_waving_water, enable_dynamic_shadows
+enable_water_reflections (Liquid reflections) bool false
 
 [**Dynamic shadows]
 
@@ -660,6 +664,18 @@ bloom_radius (Bloom Radius) float 1 0.1 8
 #
 #    Requires: shaders, enable_post_processing, enable_bloom
 enable_volumetric_lighting (Volumetric lighting) bool false
+
+[**Other Effects]
+
+#   Simulate translucency when looking at foliage in the sunlight.
+#
+#   Requires: shaders, enable_dynamic_shadows
+enable_translucent_foliage (Translucent foliage) bool false
+
+#   Apply specular shading to nodes.
+#
+#   Requires: shaders, enable_dynamic_shadows
+enable_node_specular (Node specular) bool false
 
 [*Audio]
 
@@ -1844,6 +1860,11 @@ ignore_world_load_errors (Ignore world errors) bool false
 
 [**Graphics]
 
+#    Shaders are a fundamental part of rendering and enable advanced visual effects.
+#
+#    Requires: shaders_support
+enable_shaders (Shaders) bool true
+
 #    Path to shader directory. If no path is defined, default location will be used.
 #
 #    Requires: shaders
@@ -1867,6 +1888,7 @@ cloud_radius (Cloud radius) int 12 1 62
 desynchronize_mapblock_texture_animation (Desynchronize block animation) bool false
 
 #    Enables caching of facedir rotated meshes.
+#    This is only effective with shaders disabled.
 enable_mesh_cache (Mesh cache) bool false
 
 #    Delay between mesh updates on the client in ms. Increasing this will slow
