@@ -7,8 +7,8 @@
 #include "SColor.h"
 #include "matrix4.h"
 #include "irrMath.h"
-#include "EMaterialTypes.h"
-#include "EMaterialProps.h"
+#include "EMaterialTypes.h" // IWYU pragma: export
+#include "EMaterialProps.h" // IWYU pragma: export
 #include "SMaterialLayer.h"
 #include "IrrCompileConfig.h" // for IRRLICHT_API
 
@@ -410,6 +410,7 @@ public:
 	{
 		bool different =
 				MaterialType != b.MaterialType ||
+				ColorParam != b.ColorParam ||
 				MaterialTypeParam != b.MaterialTypeParam ||
 				Thickness != b.Thickness ||
 				Wireframe != b.Wireframe ||

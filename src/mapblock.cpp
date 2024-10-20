@@ -31,7 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "content_mapnode.h"  // For legacy name-id mapping
 #include "content_nodemeta.h" // For legacy deserialization
 #include "serialization.h"
-#ifndef SERVER
+#if CHECK_CLIENT_BUILD()
 #include "client/mapblock_mesh.h"
 #endif
 #include "porting.h"
@@ -77,7 +77,7 @@ MapBlock::MapBlock(v3s16 pos, IGameDef *gamedef):
 
 MapBlock::~MapBlock()
 {
-#ifndef SERVER
+#if CHECK_CLIENT_BUILD()
 	{
 		delete mesh;
 		mesh = nullptr;
@@ -178,13 +178,13 @@ void MapBlock::copyTo(VoxelManipulator &dst)
 			getPosRelative(), data_size);
 }
 
-void MapBlock::copyFrom(VoxelManipulator &dst)
+void MapBlock::copyFrom(const VoxelManipulator &src)
 {
 	v3s16 data_size(MAP_BLOCKSIZE, MAP_BLOCKSIZE, MAP_BLOCKSIZE);
 	VoxelArea data_area(v3s16(0,0,0), data_size - v3s16(1,1,1));
 
 	// Copy from VoxelManipulator to data
-	dst.copyTo(data, data_area, v3s16(0,0,0),
+	src.copyTo(data, data_area, v3s16(0,0,0),
 			getPosRelative(), data_size);
 }
 

@@ -1,6 +1,6 @@
 # When enabling SDL2 by default on macOS, don't forget to change
 # "NSHighResolutionCapable" to true in "Info.plist".
-if(NOT APPLE)
+if(ANDROID)
 	set(DEFAULT_SDL2 ON)
 endif()
 
@@ -480,8 +480,8 @@ add_library(IrrlichtMt::IrrlichtMt ALIAS IrrlichtMt)
 target_include_directories(IrrlichtMt
 	PUBLIC
 		"$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>"
-		"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
 	PRIVATE
+		"$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
 		${link_includes}
 )
 

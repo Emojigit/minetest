@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <iostream>
 #include <queue>
 #include <algorithm>
+#include "irr_v2d.h"
 #include "network/connection.h"
 #include "network/networkprotocol.h"
 #include "network/serveropcodes.h"
@@ -84,6 +85,15 @@ public:
 		BaseException(s)
 	{}
 };
+
+ModIPCStore::~ModIPCStore()
+{
+	// we don't have to do this, it's pure debugging aid
+	if (!std::unique_lock(mutex, std::try_to_lock).owns_lock()) {
+		errorstream << FUNCTION_NAME << ": lock is still in use!" << std::endl;
+		assert(0);
+	}
+}
 
 class ServerThread : public Thread
 {
@@ -1919,6 +1929,8 @@ void Server::SendSetLighting(session_t peer_id, const Lighting &lighting)
 			<< lighting.exposure.center_weight_power;
 
 	pkt << lighting.volumetric_light_strength << lighting.shadow_tint;
+	pkt << lighting.bloom_intensity << lighting.bloom_strength_factor <<
+			lighting.bloom_radius;
 
 	Send(&pkt);
 }
@@ -1985,14 +1997,21 @@ void Server::SendPlayerFov(session_t peer_id)
 	Send(&pkt);
 }
 
-void Server::SendLocalPlayerAnimations(session_t peer_id, v2s32 animation_frames[4],
+void Server::SendLocalPlayerAnimations(session_t peer_id, v2f animation_frames[4],
 		f32 animation_speed)
 {
 	NetworkPacket pkt(TOCLIENT_LOCAL_PLAYER_ANIMATIONS, 0,
 		peer_id);
 
-	pkt << animation_frames[0] << animation_frames[1] << animation_frames[2]
-			<< animation_frames[3] << animation_speed;
+	for (int i = 0; i < 4; ++i) {
+		if (m_clients.getProtocolVersion(peer_id) >= 46) {
+			pkt << animation_frames[i];
+		} else {
+			pkt << v2s32::from(animation_frames[i]);
+		}
+	}
+
+	pkt  << animation_speed;
 
 	Send(&pkt);
 }
@@ -2517,9 +2536,9 @@ bool Server::addMediaFile(const std::string &filename,
 	const char *supported_ext[] = {
 		".png", ".jpg", ".bmp", ".tga",
 		".ogg",
-		".x", ".b3d", ".obj", ".gltf",
-		// Custom translation file format
-		".tr",
+		".x", ".b3d", ".obj", ".gltf", ".glb",
+		// Translation file formats
+		".tr", ".po", ".mo",
 		NULL
 	};
 	if (removeStringEnd(filename, supported_ext).empty()) {
@@ -2602,14 +2621,20 @@ void Server::fillMediaCache()
 
 void Server::sendMediaAnnouncement(session_t peer_id, const std::string &lang_code)
 {
-	std::string lang_suffix = ".";
-	lang_suffix.append(lang_code).append(".tr");
+	std::string translation_formats[3] = { ".tr", ".po", ".mo" };
+	std::string lang_suffixes[3];
+	for (size_t i = 0; i < 3; i++) {
+		lang_suffixes[i].append(".").append(lang_code).append(translation_formats[i]);
+  }
 
-	auto include = [&] (const std::string &name, const MediaInfo &info) -> bool {
+  auto include = [&] (const std::string &name, const MediaInfo &info) -> bool {
 		if (info.no_announce)
 			return false;
-		if (str_ends_with(name, ".tr") && !str_ends_with(name, lang_suffix))
-			return false;
+		for (size_t j = 0; j < 3; j++) {
+			if (str_ends_with(name, translation_formats[j]) && !str_ends_with(name, lang_suffixes[j])) {
+				return false;
+			}
+		}
 		return true;
 	};
 
@@ -3422,7 +3447,7 @@ Address Server::getPeerAddress(session_t peer_id)
 }
 
 void Server::setLocalPlayerAnimations(RemotePlayer *player,
-		v2s32 animation_frames[4], f32 frame_speed)
+		v2f animation_frames[4], f32 frame_speed)
 {
 	sanity_check(player);
 	player->setLocalAnimations(animation_frames, frame_speed);
@@ -4148,12 +4173,11 @@ Translations *Server::getTranslationLanguage(const std::string &lang_code)
 	// [] will create an entry
 	auto *translations = &server_translations[lang_code];
 
-	std::string suffix = "." + lang_code + ".tr";
 	for (const auto &i : m_media) {
-		if (str_ends_with(i.first, suffix)) {
+		if (Translations::getFileLanguage(i.first) == lang_code) {
 			std::string data;
 			if (fs::ReadFile(i.second.path, data, true)) {
-				translations->loadTranslation(data);
+				translations->loadTranslation(i.first, data);
 			}
 		}
 	}
@@ -4292,12 +4316,10 @@ u16 Server::getProtocolVersionMin()
 		min_proto = LATEST_PROTOCOL_VERSION;
 	return rangelim(min_proto,
 		SERVER_PROTOCOL_VERSION_MIN,
-		SERVER_PROTOCOL_VERSION_MAX);
+		LATEST_PROTOCOL_VERSION);
 }
 
 u16 Server::getProtocolVersionMax()
 {
-	return g_settings->getBool("strict_protocol_version_checking")
-		? LATEST_PROTOCOL_VERSION
-		: SERVER_PROTOCOL_VERSION_MAX;
+	return LATEST_PROTOCOL_VERSION;
 }

@@ -24,6 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "client/renderingengine.h"
 #include "client/shader.h"
 #include "client/tile.h"
+#include "clientdynamicinfo.h"
 #include "config.h"
 #include "content/content.h"
 #include "content/mods.h"
@@ -213,15 +214,28 @@ GUIEngine::GUIEngine(JoystickController *joystick,
 
 
 /******************************************************************************/
-std::string findLocaleFileInMods(const std::string &path, const std::string &filename)
+std::string findLocaleFileWithExtension(const std::string &path)
+{
+	if (fs::PathExists(path + ".mo"))
+		return path + ".mo";
+	if (fs::PathExists(path + ".po"))
+		return path + ".po";
+	if (fs::PathExists(path + ".tr"))
+		return path + ".tr";
+	return "";
+}
+
+
+/******************************************************************************/
+std::string findLocaleFileInMods(const std::string &path, const std::string &filename_no_ext)
 {
 	std::vector<ModSpec> mods = flattenMods(getModsInPath(path, "root", true));
 
 	for (const auto &mod : mods) {
-		std::string ret = mod.path + DIR_DELIM "locale" DIR_DELIM + filename;
-		if (fs::PathExists(ret)) {
+		std::string ret = findLocaleFileWithExtension(
+				mod.path + DIR_DELIM "locale" DIR_DELIM + filename_no_ext);
+		if (!ret.empty())
 			return ret;
-		}
 	}
 
 	return "";
@@ -234,19 +248,26 @@ Translations *GUIEngine::getContentTranslations(const std::string &path,
 	if (domain.empty() || lang_code.empty())
 		return nullptr;
 
-	std::string filename = domain + "." + lang_code + ".tr";
-	std::string key = path + DIR_DELIM "locale" DIR_DELIM + filename;
+	std::string filename_no_ext = domain + "." + lang_code;
+	std::string key = path + DIR_DELIM "locale" DIR_DELIM + filename_no_ext;
 
 	if (key == m_last_translations_key)
 		return &m_last_translations;
 
 	std::string trans_path = key;
-	ContentType type = getContentType(path);
-	if (type == ContentType::GAME)
-		trans_path = findLocaleFileInMods(path + DIR_DELIM "mods" DIR_DELIM, filename);
-	else if (type == ContentType::MODPACK)
-		trans_path = findLocaleFileInMods(path, filename);
-	// We don't need to search for locale files in a mod, as there's only one `locale` folder.
+
+	switch (getContentType(path)) {
+	case ContentType::GAME:
+		trans_path = findLocaleFileInMods(path + DIR_DELIM "mods" DIR_DELIM,
+				filename_no_ext);
+		break;
+	case ContentType::MODPACK:
+		trans_path = findLocaleFileInMods(path, filename_no_ext);
+		break;
+	default:
+		trans_path = findLocaleFileWithExtension(trans_path);
+		break;
+	}
 
 	if (trans_path.empty())
 		return nullptr;
@@ -256,7 +277,7 @@ Translations *GUIEngine::getContentTranslations(const std::string &path,
 
 	std::string data;
 	if (fs::ReadFile(trans_path, data)) {
-		m_last_translations.loadTranslation(data);
+		m_last_translations.loadTranslation(fs::GetFilenameFromPath(trans_path.c_str()), data);
 	}
 
 	return &m_last_translations;
@@ -316,6 +337,7 @@ void GUIEngine::run()
 		);
 	const bool initial_window_maximized = !g_settings->getBool("fullscreen") &&
 			g_settings->getBool("window_maximized");
+	auto last_window_info = ClientDynamicInfo::getCurrent();
 
 	FpsControl fps_control;
 	f32 dtime = 0.0f;
@@ -334,6 +356,11 @@ void GUIEngine::run()
 			if (text_height != g_fontengine->getTextHeight()) {
 				updateTopLeftTextSize();
 				text_height = g_fontengine->getTextHeight();
+			}
+			auto window_info = ClientDynamicInfo::getCurrent();
+			if (!window_info.equal(last_window_info)) {
+				m_script->handleMainMenuEvent("WindowInfoChange");
+				last_window_info = window_info;
 			}
 
 			driver->beginScene(true, true, RenderingEngine::MENU_SKY_COLOR);
@@ -377,7 +404,7 @@ void GUIEngine::run()
 /******************************************************************************/
 GUIEngine::~GUIEngine()
 {
-	g_settings->deregisterChangedCallback("fullscreen", fullscreenChangedCallback, this);
+	g_settings->deregisterAllChangedCallbacks(this);
 
 	// deinitialize script first. gc destructors might depend on other stuff
 	infostream << "GUIEngine: Deinitializing scripting" << std::endl;

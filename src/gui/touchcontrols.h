@@ -33,13 +33,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "itemdef.h"
 #include "client/game.h"
+#include "util/basic_macros.h"
+#include "client/texturesource.h"
 
 namespace irr
 {
 	class IrrlichtDevice;
 }
 
-using namespace irr;
 using namespace irr::core;
 using namespace irr::gui;
 
@@ -136,6 +137,8 @@ class TouchControls
 {
 public:
 	TouchControls(IrrlichtDevice *device, ISimpleTextureSource *tsrc);
+	~TouchControls();
+	DISABLE_CLASS_COPY(TouchControls);
 
 	void translateEvent(const SEvent &event);
 	void applyContextControls(const TouchInteractionMode &mode);
@@ -163,8 +166,8 @@ public:
 	 */
 	line3d<f32> getShootline() { return m_shootline; }
 
-	float getMovementDirection() { return m_joystick_direction; }
-	float getMovementSpeed() { return m_joystick_speed; }
+	float getJoystickDirection() { return m_joystick_direction; }
+	float getJoystickSpeed() { return m_joystick_speed; }
 
 	void step(float dtime);
 	inline void setUseCrosshair(bool use_crosshair) { m_draw_crosshair = use_crosshair; }

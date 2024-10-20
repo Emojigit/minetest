@@ -307,8 +307,8 @@ public:
 	// Copies data to VoxelManipulator to getPosRelative()
 	void copyTo(VoxelManipulator &dst);
 
-	// Copies data from VoxelManipulator getPosRelative()
-	void copyFrom(VoxelManipulator &dst);
+	// Copies data from VoxelManipulator to getPosRelative()
+	void copyFrom(const VoxelManipulator &src);
 
 	// Update is air flag.
 	// Sets m_is_air to appropriate value.
@@ -460,7 +460,7 @@ private:
 	 */
 
 public:
-#ifndef SERVER // Only on client
+#if CHECK_CLIENT_BUILD() // Only on client
 	MapBlockMesh *mesh = nullptr;
 
 	// marks the sides which are opaque: 00+Z-Z+Y-Y+X-X
