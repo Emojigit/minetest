@@ -301,12 +301,17 @@ void RemoteClient::GetNextBlocks (
 				movement.
 				(0.1 is about 5 degrees)
 			*/
+			f32 fov_quotient = 1;
+			v3f player_dir = camera_dir;
 			f32 dist;
-			if (!(isBlockInSight(p, camera_pos, camera_dir, camera_fov,
-						d_blocks_in_sight, &dist) ||
-					(playerspeed.getLength() > 1.0f * BS &&
-					isBlockInSight(p, camera_pos, playerspeeddir, 0.1f,
-						d_blocks_in_sight)))) {
+			if (playerspeed.getLength() > 1.0f * BS)
+			{
+				fov_quotient += std::log2(playerspeed.getLength() / BS);
+				player_dir = playerspeeddir;
+			}
+			if (!isBlockInSight(p, camera_pos, player_dir, camera_fov / fov_quotient,
+								d_blocks_in_sight, &dist))
+			{
 				continue;
 			}
 
