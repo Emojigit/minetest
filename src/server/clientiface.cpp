@@ -240,12 +240,28 @@ void RemoteClient::GetNextBlocks (
 	s32 nearest_sent_d = -1;
 	//bool queue_is_full = false;
 
-	const v3s16 cam_pos_nodes = floatToInt(camera_pos, BS);
+	// Determine effective camera parameters once per tick
+	v3f effective_camera_pos = camera_pos;
+	v3f effective_camera_dir = camera_dir;
+	f32 effective_fov = camera_fov;
 
-	// Calculate FOV attributes here, once per call
-	// see numeric.h for details
-	const f32 target_cos_sq = getFovCosSq(camera_fov);
-	const f32 adjdist = getFovAdj(camera_fov);
+	if (playerspeed.getLength() > 1.0f * BS) {
+		f32 fov_quotient = 1.0f + std::log2(playerspeed.getLength() / BS);
+		effective_fov = camera_fov / fov_quotient;
+		effective_camera_dir = playerspeeddir;
+
+		// Estimate the position the player will be in when the block is sent (half an RTT)
+		float avg_rtt;
+		Server *server = env->getServer();
+		server->getClientConInfo(player->getPeerId(), con::AVG_RTT, &avg_rtt);
+		effective_camera_pos += (playerspeeddir / BS) * (avg_rtt / 2.0f);
+	}
+
+	// Precompute optimized FOV attributes using the effective FOV[cite: 2]
+	const f32 target_cos_sq = getFovCosSq(effective_fov);
+	const f32 adjdist = getFovAdj(effective_fov);
+
+	const v3s16 cam_pos_nodes = floatToInt(effective_camera_pos, BS);
 
 	s16 d;
 	for (d = d_start; d <= d_max; d++) {
@@ -289,11 +305,8 @@ void RemoteClient::GetNextBlocks (
 				(0.1 is about 5 degrees)
 			*/
 			f32 dist;
-			if (!(isBlockInSightEx(p, camera_pos, camera_dir, target_cos_sq, adjdist,
-						d_blocks_in_sight, &dist) ||
-					(playerspeed.getLength() > 1.0f * BS &&
-					isBlockInSight(p, camera_pos, playerspeeddir, 0.1f,
-						d_blocks_in_sight)))) {
+			if (!isBlockInSightEx(p, effective_camera_pos, effective_camera_dir, target_cos_sq, adjdist,
+				d_blocks_in_sight, &dist)) {
 				continue;
 			}
 
